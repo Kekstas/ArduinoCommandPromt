@@ -22,5 +22,17 @@ namespace ArduinoCommandPromt.Properties {
                 return defaultInstance;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("c:\\")]
+        public string LastDialogOpenLocation {
+            get {
+                return ((string)(this["LastDialogOpenLocation"]));
+            }
+            set {
+                this["LastDialogOpenLocation"] = value;
+            }
+        }
     }
 }

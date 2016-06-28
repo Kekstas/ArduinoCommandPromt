@@ -1,15 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using System.Threading;
 using System.IO.Ports;
-using System.IO;
 using System.Management;
+using System.Threading;
 
-namespace WpfApplication1
+namespace ArduinoCommandPromt
 {
 
     public class PortInfo
@@ -20,12 +15,42 @@ namespace WpfApplication1
 
     public class ArduinoController
     {
-        //List<PortInfo> portInfoList;
 
-        //ArduinoController()
-        //{
-        //    portInfoList=new List<PortInfo>();
-        //}
+        public static string[] ComPorts {
+            get
+            {
+                return SerialPort.GetPortNames();
+            }
+        }
+
+        public static string[] BaundRates
+        {
+            get
+            {
+                return new string[]
+                {
+                    "9600",
+                    "14400",
+                    "19200",
+                    "28800",
+                    "38400",
+                    "57600",
+                    "115200",
+                    "230400"
+                };
+            }
+        }
+
+        public SerialPort SerialPort { get; set; }
+
+
+        public ArduinoController(string port, int baundRate)
+        {
+            SerialPort = new SerialPort(port, baundRate);
+            SerialPort.Open();
+        }
+
+
 
 
         // Method to prepare the WMI query connection options.
@@ -88,21 +113,6 @@ namespace WpfApplication1
             }
             return portInfoList;
         }
-
-
-
-
-
-
-
-
-
-        SerialPort currentPort;
-        bool portFound;
-
-
-
-
 
 
 
@@ -176,52 +186,6 @@ namespace WpfApplication1
             }
             catch (Exception e)
             {
-            }
-        }
-
-        private bool DetectArduino()
-        {
-            try
-            {
-                //The below setting are for the Hello handshake
-                byte[] buffer = new byte[5];
-                buffer[0] = Convert.ToByte(16);
-                buffer[1] = Convert.ToByte(128);
-                buffer[2] = Convert.ToByte(0);
-                buffer[3] = Convert.ToByte(0);
-                buffer[4] = Convert.ToByte(4);
-
-                int intReturnASCII = 0;
-                char charReturnValue = (Char)intReturnASCII;
-
-                currentPort.Open();
-                currentPort.Write(buffer, 0, 5);
-                Thread.Sleep(1000);
-
-                int count = currentPort.BytesToRead;
-                string returnMessage = "";
-                while (count > 0)
-                {
-                    intReturnASCII = currentPort.ReadByte();
-                    returnMessage = returnMessage + Convert.ToChar(intReturnASCII);
-                    count--;
-                }
-                //ComPort.name = returnMessage;
-
-                currentPort.Close();
-
-                if (returnMessage.Contains("HELLO FROM ARDUINO"))
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            catch (Exception e)
-            {
-                return false;
             }
         }
 
@@ -311,7 +275,9 @@ namespace WpfApplication1
 
 
 
-
-
+        internal void Send(string command)
+        {
+            this.SerialPort.Write(command);
+        }
     }
 }
