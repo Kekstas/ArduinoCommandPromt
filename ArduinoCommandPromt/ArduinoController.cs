@@ -1,8 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.IO.Ports;
+using System.Linq;
 using System.Management;
 using System.Threading;
+using System.Windows.Annotations;
+using Helpers.ObjectsExtentions;
+using System.Text;
+using System.Threading.Tasks;
+using Nito.AsyncEx;
 
 namespace ArduinoCommandPromt
 {
@@ -15,6 +22,8 @@ namespace ArduinoCommandPromt
 
     public class ArduinoController
     {
+        private AsyncAutoResetEvent OkInputReceived = new AsyncAutoResetEvent(false);
+
 
         public static string[] ComPorts {
             get
@@ -48,19 +57,16 @@ namespace ArduinoCommandPromt
         {
             SerialPort = new SerialPort(port, baundRate);
             SerialPort.Open();
+            if (!SerialPort.IsOpen) throw new Exception("Port not reachable");
+            SerialPort.DataReceived+=SerialPort_DataReceived;
+
         }
-
-
 
 
         // Method to prepare the WMI query connection options.
         public static ConnectionOptions PrepareOptions()
         {
             ConnectionOptions options = new ConnectionOptions();
-
-            //options.ImpersonationLevel = ImpersonationLevel.Impersonate;
-            //options.AuthenticationLevel = AuthenticationLevel.Default;
-            //options.EnablePriveleges = true;
             return options;
         }
 
@@ -73,6 +79,7 @@ namespace ArduinoCommandPromt
             scope.Connect();
             return scope;
         }
+
 
         // Method to retrieve the list of all COM ports.
         public static List<PortInfo> FindComPorts()
@@ -116,168 +123,116 @@ namespace ArduinoCommandPromt
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        public string AutodetectArduinoPort()
-        {
-            ManagementScope connectionScope = new ManagementScope();
-            //SelectQuery serialQuery = new SelectQuery("SELECT * FROM Win32_SerialPort");
-            SelectQuery serialQuery = new SelectQuery("SELECT * FROM Win32_PnPEntity");
-
-
-            ManagementObjectSearcher searcher = new ManagementObjectSearcher(connectionScope, serialQuery);
-
-            try
-            {
-                foreach (ManagementObject item in searcher.Get())
-                {
-                    string desc = item["Description"].ToString();
-                    string deviceId = item["DeviceID"].ToString();
-
-                    if (desc.Contains("Arduino"))
-                    {
-                        return deviceId;
-                    }
-                }
-            }
-            catch (ManagementException e)
-            {
-                /* Do Nothing */
-            }
-
-            return null;
-        }
-
-
-
-        public static void SetComPort()
-        {
-            try
-            {
-                string[] ports = SerialPort.GetPortNames();
-                foreach (string port in ports)
-                {
-                    var currentPort = new SerialPort(port, 9600);
-                    //if (DetectArduino())
-                    //{
-                    //    portFound = true;
-                    //    break;
-                    //}
-                    //else
-                    //{
-                    //    portFound = false;
-                    //}
-                }
-            }
-            catch (Exception e)
-            {
-            }
-        }
-
-
-        static byte[] GetBytes(string str)
-        {
-            byte[] bytes = new byte[str.Length * sizeof(char)];
-            System.Buffer.BlockCopy(str.ToCharArray(), 0, bytes, 0, bytes.Length);
-            return bytes;
-        }
-
-
-        public static bool test()
-        {
-            try
-            {
-                //The below setting are for the Hello handshake
-                //byte[] buffer = new byte[5];
-                //buffer[0] = Convert.ToByte("P");
-                //buffer[1] = Convert.ToByte(128);
-                //buffer[2] = Convert.ToByte(0);
-                //buffer[3] = Convert.ToByte(0);
-                //buffer[4] = Convert.ToByte(4);
-
-
-                var command= "M10 XY 395 365 0.00 0.00 A0 B1 H0 S94 U65 D72\n";
-                //var buffer= GetBytes(command);
-
-                //int intReturnASCII = 0;
-                //char charReturnValue = (Char)intReturnASCII;
-
-                var currentPort = new SerialPort("COM4", 115200);
-
-                currentPort.Open();
-                //currentPort.Write(buffer, 0, buffer.Length);
-                currentPort.WriteLine(command);
-
-
-                while (true)
-                {
-                    Thread.Sleep(1000);
-                    if (currentPort.BytesToRead != 0)
-                    {
-                     //var test_get=currentPort.ReadLine();
-                        var test_get = currentPort.ReadExisting();
-
-                    }
-
-                    //string returnMessage = "";
-                    //while (count > 0)
-                    //{
-                    //    intReturnASCII = currentPort.ReadByte();
-                    //    returnMessage = returnMessage + Convert.ToChar(intReturnASCII);
-                    //    count--;
-                    //}
-
-                    //string read = serialPort1.ReadLine();
-                }
-                //int count = currentPort.BytesToRead;
-                //string returnMessage = "";
-                //while (count > 0)
-                //{
-                    //intReturnASCII = currentPort.ReadByte();
-                    //returnMessage = returnMessage + Convert.ToChar(intReturnASCII);
-                    //count--;
-                //}
-                //ComPort.name = returnMessage;
-
-
-                currentPort.Close();
-
-                //if (returnMessage.Contains("HELLO FROM ARDUINO"))
-                //{
-                //    return true;
-                //}
-                //else
-                //{
-                //    return false;
-                //}
-            }
-            catch (Exception e)
-            {
-                return false;
-            }
-        }
-
-
-
-
         internal void Send(string command)
         {
             this.SerialPort.Write(command);
         }
+
+        internal async Task<int> PlayFile(string GCodeFilePath)
+        {
+            if (!File.Exists(GCodeFilePath))
+            {
+                 throw new Exception("File not Existents");
+            }
+            GCode = File.ReadAllLines(GCodeFilePath);
+            this.Playing = true;
+            this.CurentCodePossitionIndex = -1;
+            while (this.Playing)
+            {
+                SendNextLine();
+                var inputReceivedTimeOut = new CancellationTokenSource();
+                inputReceivedTimeOut.CancelAfter(TimeSpan.FromSeconds(5));
+                try
+                {
+                    await OkInputReceived.WaitAsync(inputReceivedTimeOut.Token);
+                }
+                catch (TaskCanceledException ex)
+                {
+                    this.Playing = false;
+                    break;
+                }
+            }
+
+            return 0;
+        }
+
+
+
+
+        public string[] GCode { get; set; }
+
+        public int CurentCodePossitionIndex {  get; private set; }
+
+
+        private void SendNextLine()
+        {
+
+            CurentCodePossitionIndex = CurentCodePossitionIndex + 1;
+            string command = "";
+            var foundToSendCommand = false;
+            while (this.GCode.Count() > CurentCodePossitionIndex)
+            {
+                //this.ListBoxCode.SelectedIndex = CurentCodePossitionIndex;
+               // command = this.ListBoxCode.SelectedItem.ToString().Trim();
+                command = GCode[CurentCodePossitionIndex];
+                if (command.IsNullOrEmpty() || command.Substring(0, 1) == "#" || command.Substring(0, 1) == ";")
+                {
+                    CurentCodePossitionIndex++;
+                    continue;
+                }
+
+                command = command.Trim() + " \n";
+                this.Send(command);
+                foundToSendCommand = true;
+                break;
+            }
+
+            Playing = foundToSendCommand && Playing;
+
+        }
+
+
+        StringBuilder SerialPortData = new StringBuilder();
+
+        void SerialPort_DataReceived(object sender, System.IO.Ports.SerialDataReceivedEventArgs e)
+        {
+            SerialPort sp = (SerialPort)sender;
+            string indata = sp.ReadExisting();
+            var time = DateTime.Now.ToString();
+            SerialPortData.Append(indata);
+
+            SerialPortData.Replace("\r", "");
+            SerialPortData.Replace("\t", "");
+
+            var doSend = false;
+
+            int commandEndPossition = -1;
+            while ((commandEndPossition = SerialPortData.IndexOf("\n")) >= 0)
+            {
+                var command = SerialPortData.ToString(0, commandEndPossition);
+                SerialPortData.Remove(0, commandEndPossition + 1);
+                if (command.IsNullOrEmpty()) continue;
+
+                //this.Dispatcher.Invoke((Action)(() =>
+                //{
+                //TextBlockConsole.AppendText(string.Format("{0} {1}\n", time, command));
+                //}));
+                //ConsoleContent.AppendLine(time + " " + command);
+                if (Playing == false) continue;
+                if (command.Trim().ToUpper() == "OK")
+                {
+                    doSend = true;
+                }
+            }
+            if (!doSend) return;
+            OkInputReceived.Set();
+            // SendNextLine();
+            // this.Dispatcher.Invoke((Action)(() => { SendNextLine(); }));
+
+        }
+
+
+
+        public bool Playing { get; set; }
     }
 }

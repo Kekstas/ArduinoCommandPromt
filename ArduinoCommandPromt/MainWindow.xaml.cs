@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using ArduinoCommandPromt.Helpers;
@@ -10,6 +11,7 @@ using System.Text;
 using System.Configuration;
 using System.IO;
 using ArduinoCommandPromt.Properties;
+using System.Threading.Tasks;
 
 namespace ArduinoCommandPromt
 {
@@ -21,13 +23,9 @@ namespace ArduinoCommandPromt
 
 
         public ArduinoController Arduino { get; set; }
+        public string GCodeFilePath { get; set; }
         public StringBuilderWrapper ConsoleContent { get; private set; }
-        //private readonly StringBuilderWrapper _consoleContent = new StringBuilderWrapper();
 
-        //public string ConsoleContent
-        //{
-        //    get { return _consoleContent.ToString(); }
-        //}
 
 
         public MainWindow()
@@ -66,15 +64,10 @@ namespace ArduinoCommandPromt
 
         private void ButtonConnect_OnClick(object sender, RoutedEventArgs e)
         {
-
             try
             {
                 Arduino = new ArduinoController(PortsComboBox.SelectedValue.ToString(), BaundrateComboBox.SelectedValue.ToString().Parse<int>());
-                Arduino.SerialPort.DataReceived += SerialPort_DataReceived;
                 this.ButtonConnect.Content = "Disconnect";
-
-
-
             }
             catch (Exception zzz)
             {
@@ -83,45 +76,8 @@ namespace ArduinoCommandPromt
 
         }
 
-        StringBuilder SerialPortData = new StringBuilder();
-
-        void SerialPort_DataReceived(object sender, System.IO.Ports.SerialDataReceivedEventArgs e)
-        {
-            SerialPort sp = (SerialPort)sender;
-            string indata = sp.ReadExisting();
-            var time = DateTime.Now.ToString();
-            //var ttt = new StringBuilder();
-            // ttt.Remove(0, 1);
-            SerialPortData.Append(indata);
 
 
-            SerialPortData.Replace("\r", "");
-            SerialPortData.Replace("\t", "");
-
-            var doSend = false;
-
-            int commandEndPossition = -1;
-            while ((commandEndPossition = SerialPortData.IndexOf("\n")) >= 0)
-            {
-                var command = SerialPortData.ToString(0, commandEndPossition);
-                SerialPortData.Remove(0, commandEndPossition + 1);
-                if (command.IsNullOrEmpty()) continue;
-
-                //this.Dispatcher.Invoke((Action)(() =>
-                //{
-                    //TextBlockConsole.AppendText(string.Format("{0} {1}\n", time, command));
-                //}));
-                 ConsoleContent.AppendLine(time + " " + command);
-                if (Playing == false) continue;
-                if (command.Trim().ToUpper() == "OK")
-                {
-                    doSend = true;
-                }
-            }
-            if (!doSend) return;
-            this.Dispatcher.Invoke((Action)(() => { SendNextLine(); }));
-
-        }
 
         private void MenuOpen_OnClick(object sender, RoutedEventArgs e)
         {
@@ -135,11 +91,10 @@ namespace ArduinoCommandPromt
             if (result == true)
             {
                 // Open document
-                string filename = dlg.FileName;
+                GCodeFilePath = dlg.FileName;
                 ListBoxCode.Items.Clear();
-                ListBoxCode.Load(filename);
-
-                Settings.Default["LastDialogOpenLocation"] = Path.GetDirectoryName(filename);
+                ListBoxCode.Load(GCodeFilePath);
+                Settings.Default["LastDialogOpenLocation"] = Path.GetDirectoryName(GCodeFilePath);
                 Settings.Default.Save();
 
             }
@@ -170,50 +125,22 @@ namespace ArduinoCommandPromt
         }
 
         private int CurentCodePossitionIndex = 0;
-        private bool Playing = false;
+
 
 
         private void ButtonPlay_OnClick(object sender, RoutedEventArgs e)
         {
-            if (this.ListBoxCode.Items.Count > 0)
-            {
-                CurentCodePossitionIndex = -1;
-                Playing = true;
-                SendNextLine();
-            }
+            Action zz = (async () => { await this.Arduino.PlayFile(GCodeFilePath); });
+            zz();
+
 
         }
 
-        private void SendNextLine()
-        {
-            CurentCodePossitionIndex = CurentCodePossitionIndex + 1;
-            string command = "";
-            var foundToSendCommand = false;
-            while (this.ListBoxCode.Items.Count > CurentCodePossitionIndex)
-            {
-                this.ListBoxCode.SelectedIndex = CurentCodePossitionIndex;
-                command = this.ListBoxCode.SelectedItem.ToString().Trim();
 
-                if (command.IsNullOrEmpty() || command.Substring(0, 1) == "#" || command.Substring(0, 1) == ";")
-                {
-                    CurentCodePossitionIndex++;
-                    continue;
-                }
-
-                command = command.Trim() + " \n";
-                this.Arduino.Send(command);
-                //ConsoleContent.AppendLine("Sending:" + command);
-                foundToSendCommand = true;
-                break;
-            }
-
-
-            if (foundToSendCommand == false) Playing = false;
-        }
 
         private void ButtonStop_OnClick(object sender, RoutedEventArgs e)
         {
-            Playing = false;
+            this.Arduino.Playing = false;
         }
 
         private void ButtonClear_OnClick(object sender, RoutedEventArgs e)
