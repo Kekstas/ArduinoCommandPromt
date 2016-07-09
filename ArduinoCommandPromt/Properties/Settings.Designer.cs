@@ -34,5 +34,23 @@ namespace ArduinoCommandPromt.Properties {
                 this["LastDialogOpenLocation"] = value;
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("DeviceStopSequenceFile.d ")]
+        public string DeviceStopSequenceFile {
+            get {
+                return ((string)(this["DeviceStopSequenceFile"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
+        public string DeviceTimoutSeconds {
+            get {
+                return ((string)(this["DeviceTimoutSeconds"]));
+            }
+        }
     }
 }

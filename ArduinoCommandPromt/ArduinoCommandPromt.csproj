@@ -76,6 +76,11 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="AutoScrollBehavior.cs" />
+    <Compile Include="CNCSimulator.cs" />
+    <Compile Include="Models\ControllerEvent.cs" />
+    <Compile Include="Serial\IDeviceSerialPort.cs" />
+    <Compile Include="Serial\DeviceSerialPort.cs" />
+    <Compile Include="Serial\DeviceSerialPortVirtual.cs" />
     <Compile Include="StringBuilderWrapper.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -85,7 +90,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="ArduinoController.cs" />
+    <Compile Include="DeviceController.cs" />
     <Compile Include="Helpers\wpfExtentions.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
