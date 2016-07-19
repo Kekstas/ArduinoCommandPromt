@@ -4,7 +4,7 @@
         Title="GCode Serial Console" Height="500" Width="570" Closing="MainWindow_OnClosing"
         >
 
-        <Grid>
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -26,50 +26,197 @@
                 <ColumnDefinition />
                 <ColumnDefinition Width="100" />
             </Grid.ColumnDefinitions>
-            <Grid Grid.Column="0" >
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*" />
-                    <!--<RowDefinition Height="100" />-->
-                </Grid.RowDefinitions>
-                <ScrollViewer VerticalScrollBarVisibility="Visible" Grid.Row="0"   >
-                    <ListBox Name="ListBoxCode"   Grid.Row="0" MouseDoubleClick="ListBoxCodeDoubleClick" />
-                </ScrollViewer>
-                <!--<TextBlock   Grid.Row="0" />--><!--<TextBlock   Grid.Row="0" />-->
-                <!--<ScrollViewer VerticalScrollBarVisibility="Visible" Grid.Row="1"   ScrollChanged="ScrollViewer_OnScrollChanged">
-                    <ListBox  Name="ListBlockConsole"
+            <TabControl Grid.Column="0" >
+                <TabItem Header="General">
+                    <ScrollViewer VerticalScrollBarVisibility="Visible" >
+                        <ListBox Name="ListBoxCode"   MouseDoubleClick="ListBoxCodeDoubleClick" />
+                    </ScrollViewer>
+                </TabItem>
+                <TabItem Header="Log">
+                    <!--<TextBlock   Grid.Row="0" />-->
+                    <!--<TextBlock   Grid.Row="0" />-->
+                    <ScrollViewer VerticalScrollBarVisibility="Visible" Grid.Row="1"   ScrollChanged="ScrollViewer_OnScrollChanged"    >
+                        <ListBox  Name="ListBlockConsole"
                              Background="WhiteSmoke"
-                              ItemsSource="{Binding ConsoleList, Mode=OneWay}" Width="254"
-                             />
+                              ItemsSource="{Binding ConsoleList, Mode=OneWay}" />
+                    </ScrollViewer>
+                </TabItem>
+                <TabItem Header="Tools">
+                    <Grid >
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <!--<RowDefinition Height="100" />-->
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="3*"/>
+                            <ColumnDefinition Width="4*" />
+                            <!--<RowDefinition Height="100" />-->
+                        </Grid.ColumnDefinitions>
+                        <StackPanel  Grid.Column="0" Grid.ColumnSpan="2">
+                            <GroupBox Header="X axis" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                                <Grid   >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="0" Maximum="500"  Value="{Binding Simulator.Xpos}"   Grid.Column="0" />
+                                    <TextBox  Grid.Column="1" Text="{Binding Simulator.Xpos}"  ></TextBox>
+                                </Grid>
+                            </GroupBox>
+                            <GroupBox Header="Y axis" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                                <Grid   >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="0" Maximum="500" Value="{Binding Simulator.Ypos}"   SmallChange="1"   />
+                                    <TextBox  Grid.Column="1"  Text="{Binding Simulator.Ypos}"  ></TextBox>
+                                </Grid>
+                            </GroupBox>
+                            <GroupBox Header="Z axis" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                                <Grid   >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="-10" Maximum="10" Value="{Binding Simulator.Zpos}"  SmallChange="1"     />
+                                    <TextBox  Grid.Column="1" Text="{Binding Simulator.Zpos}" ></TextBox>
+                                </Grid>
+                            </GroupBox>
+                            <GroupBox Header="A tool Pos" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                                <Grid   >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="4000" Maximum="7000" Value="{Binding Simulator.AtoolPos}"  SmallChange="1"     />
+                                    <TextBox  Grid.Column="1" Text="{Binding Simulator.AtoolPos}" ></TextBox>
+                                </Grid>
+                            </GroupBox>
+                            <GroupBox Header="B tool Pos" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                                <Grid   >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="4000" Maximum="7000" Value="{Binding Simulator.BtoolPos}"  SmallChange="1"    />
+                                    <TextBox  Grid.Column="1" Text="{Binding Simulator.BtoolPos}" ></TextBox>
+                                </Grid>
+                            </GroupBox>
+                            <GroupBox Header="C tool Pos" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                                <Grid   >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="4000" Maximum="7000" Value="{Binding Simulator.CtoolPos}"  SmallChange="1"     />
+                                    <TextBox  Grid.Column="1" Text="{Binding Simulator.CtoolPos}"></TextBox>
+                                </Grid>
+                            </GroupBox>
+                            <GroupBox Header="D tool Pos" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                                <Grid   >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="4000" Maximum="7000"   Value="{Binding Simulator.DtoolPos}"    />
+                                    <TextBox  Grid.Column="1" Text="{Binding Simulator.DtoolPos}"  ></TextBox>
+                                </Grid>
+                            </GroupBox>
+                            <GroupBox Header="E tool Pos" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                                <Grid   >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="4000" Maximum="7000" Value="{Binding Simulator.EtoolPos}"  SmallChange="1"     />
+                                    <TextBox  Grid.Column="1" Text="{Binding Simulator.EtoolPos}"></TextBox>
+                                </Grid>
+                            </GroupBox>
+                            <GroupBox Header="F tool Pos" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                                <Grid   >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="4000" Maximum="7000" Value="{Binding Simulator.FtoolPos}" ToolTip="Z"  />
+                                    <TextBox  Text="{Binding Simulator.FtoolPos}"  Grid.Column="1"  />
+                                </Grid>
+                            </GroupBox>
 
-
-                </ScrollViewer>-->
-
-
-            </Grid>
-            <StackPanel   Grid.Column="1"   >
-
-                <StackPanel  >
-                    <StackPanel Orientation="Horizontal">
-                        <Label>X</Label>
-                        <Slider Minimum="0" Maximum="200"  Value="{Binding Simulator.Xpos}"    ToolTip="X"  Width="50" />
-                        <TextBox Width="10"></TextBox>
                         </StackPanel>
-                    <Slider Minimum="0" Maximum="200"   Value="{Binding Simulator.Ypos}"   ToolTip="Y"  />
-                    <Slider Minimum="4000" Maximum="7000" Value="{Binding Simulator.Zpos}" ToolTip="Z"  />
-                    <Slider Minimum="4000" Maximum="7000" Value="{Binding Simulator.AtoolPos}"   SmallChange="1"   ToolTip="ToolA" />
-                    <Slider Minimum="4000" Maximum="7000" Value="{Binding Simulator.BtoolPos}"  SmallChange="1"    ToolTip="ToolB" />
-                    <Slider Minimum="4000" Maximum="7000" Value="{Binding Simulator.CtoolPos}"  SmallChange="1"    ToolTip="ToolC" />
-                    <Slider Minimum="4000" Maximum="7000" Value="{Binding Simulator.DtoolPos}"  SmallChange="1"    ToolTip="ToolD" />
-                    <Slider Minimum="4000" Maximum="7000" Value="{Binding Simulator.EtoolPos}"  SmallChange="1"    ToolTip="ToolE" />
-                    <Slider Minimum="4000" Maximum="7000" Value="{Binding Simulator.FtoolPos}"  SmallChange="1"    ToolTip="ToolF" />
-
-                    <TextBox Text="{Binding ElementName=ZSlider,Path=Value }" KeyDown="ZTextBoxKeyDown" Name="ZTextBox"  />
 
 
 
-                </StackPanel>
+                        <StackPanel   Grid.Column="2">
+                            <GroupBox Header="A tool reference" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                                <Grid   >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="4500" Maximum="6000"   SmallChange="1"    Name="ARef"  ValueChanged="ARef_OnValueChanged" />
+                                    <TextBox Text="{Binding ElementName=ARef,Path=Value }" KeyDown="ARefTextBoxKeyDown" Name="ARefTextBox"  Grid.Column="1"   TextChanged="ARefTextBox_OnTextChanged"  />
+                                </Grid>
+                            </GroupBox>
+                            <GroupBox Header="B tool reference" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                                <Grid   >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="4500" Maximum="6000"   SmallChange="1"    Name="BRef"  />
+                                    <TextBox Text="{Binding ElementName=BRef,Path=Value }" KeyDown="BRefTextBoxKeyDown" Name="BRefTextBox"  Grid.Column="1"  />
+                                </Grid>
+                            </GroupBox>
+                            <GroupBox Header="C tool reference" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                                <Grid   >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="4000" Maximum="7000"   SmallChange="1"    Name="CRef"  />
+                                    <TextBox Text="{Binding ElementName=CRef,Path=Value }" KeyDown="CRefTextBoxKeyDown" Name="CRefTextBox"  Grid.Column="1"  />
+                                </Grid>
+                            </GroupBox>
+                            <GroupBox Header="D tool reference" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                                <Grid   >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="4000" Maximum="7000"   SmallChange="1"    Name="DRef"  />
+                                    <TextBox Text="{Binding ElementName=DRef,Path=Value }" KeyDown="DRefTextBoxKeyDown" Name="DRefTextBox"  Grid.Column="1"  />
+                                </Grid>
+                            </GroupBox>
+                            <GroupBox Header="E tool reference" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                                <Grid   >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="4000" Maximum="7000"   SmallChange="1"    Name="ERef"  />
+                                    <TextBox Text="{Binding ElementName=ERef,Path=Value }" KeyDown="ERefTextBoxKeyDown" Name="ERefTextBox"  Grid.Column="1"  />
+                                </Grid>
+                            </GroupBox>
+                            <GroupBox Header="F tool reference" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                                <Grid   >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="4000" Maximum="7000"   SmallChange="1"    Name="FRef"  ValueChanged="FRef_OnValueChanged" />
+                                    <TextBox Text="{Binding ElementName=FRef,Path=Value }" KeyDown="FRefTextBoxKeyDown" Name="FRefTextBox"  Grid.Column="1"  />
+                                </Grid>
+                            </GroupBox>
+                        </StackPanel>
+                    </Grid>
+                </TabItem>
+            </TabControl>
 
 
+            <StackPanel   Grid.Column="1"   >
 
                 <StackPanel  >
                     <Label>Ports</Label>
@@ -77,11 +224,11 @@
                 </StackPanel>
                 <StackPanel  >
                     <Label>BaudRate</Label>
-                <ComboBox Name="BaundrateComboBox" />
+                    <ComboBox Name="BaundrateComboBox" />
                 </StackPanel>
                 <StackPanel   Margin="0,10,0,0">
                     <Button  Content="Connect" HorizontalAlignment="Center" VerticalAlignment="Top" Width="75" Click="ButtonConnect_OnClick" Name="ButtonConnect"/>
-                 </StackPanel>
+                </StackPanel>
                 <StackPanel   Margin="0,10,0,0" VerticalAlignment="Bottom">
                     <Button  Content="Play" HorizontalAlignment="Center" VerticalAlignment="Top" Width="75" Click="ButtonPlay_OnClick" />
                     <Button  Content="Stop" HorizontalAlignment="Center" VerticalAlignment="Top" Width="75" Click="ButtonStop_OnClick" />

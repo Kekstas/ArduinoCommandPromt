@@ -34,8 +34,13 @@ namespace ArduinoCommandPromt.Serial
 
         public void Write(string command)
         {
-            Thread.Sleep(10);
-            OnMessageReceived(@"Message should come");
+            var someThread = new Thread(() =>
+            {
+                Thread.Sleep(50);
+                OnMessageReceived(@"Message Received");
+            });
+            someThread.Start();
+
         }
 
 

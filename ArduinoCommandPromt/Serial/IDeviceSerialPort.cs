@@ -24,6 +24,7 @@ namespace ArduinoCommandPromt
         bool IsOpen { get; }
         void Close();
 
+
        // void SerialPort_DataReceived(object sender, System.IO.Ports.SerialDataReceivedEventArgs e);
 
 

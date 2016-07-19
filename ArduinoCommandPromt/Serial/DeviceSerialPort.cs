@@ -11,6 +11,7 @@ using System.Management;
 using System.Threading;
 using System.Windows.Annotations;
 using Helpers.ObjectsExtentions;
+using ArduinoCommandPromt.Models;
 
 
 
@@ -30,6 +31,14 @@ namespace ArduinoCommandPromt.Serial
             _port = port;
             _baundRate = baundRate;
             Serial = new SerialPort(port, baundRate);
+            Serial.DataReceived += OnMessageReceived;
+        }
+
+
+
+        private void OnMessageReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            if (DataReceived != null) DataReceived(this, new ControllerEvent<string>("Message"));
         }
 
 
@@ -60,7 +69,7 @@ namespace ArduinoCommandPromt.Serial
 
         public string ReadExisting()
         {
-            throw new NotImplementedException();
+            return Serial.ReadExisting();
         }
     }
 }

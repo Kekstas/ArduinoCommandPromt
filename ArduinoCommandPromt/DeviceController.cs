@@ -22,6 +22,8 @@ namespace ArduinoCommandPromt
     }
 
 
+    public  enum DeviceGcodePlayStates {Start, Middle, End};
+
     public class DeviceController : IDisposable
     {
         //        private AsyncAutoResetEvent OkInputReceived = new AsyncAutoResetEvent(false);
@@ -53,8 +55,8 @@ namespace ArduinoCommandPromt
         //public CancellationTokenSource InputReceivedTimeOut { get; private set; }
         public int DeviceTimoutSeconds { get; set; }
 
-        private DateTime startTime = DateTime.Now;
-        private Func<string, TimeSpan, string[]> PlayAction;
+
+        private Func<string, DeviceGcodePlayStates, string[]> PlayAction;
 
 
 
@@ -145,7 +147,7 @@ namespace ArduinoCommandPromt
 
 
         //async
-        internal void PlayFile(string GCodeFilePath, Func<string, TimeSpan, string[]> task = null)
+        internal void PlayFile(string GCodeFilePath, Func<string, DeviceGcodePlayStates, string[]> task = null)
         {
             if (!File.Exists(GCodeFilePath))
             {
@@ -156,7 +158,13 @@ namespace ArduinoCommandPromt
             this.CurentCodePossitionIndex = -1;
             SerialPortData.Clear();
             PlayAction = task;
-            startTime = DateTime.Now;
+
+
+            if (this.PlayAction != null)
+            {
+                var extraGCode = this.PlayAction(null, DeviceGcodePlayStates.Start);
+                this.priorityCommands.AddRange(extraGCode);
+            }
 
             try
             {
@@ -165,7 +173,16 @@ namespace ArduinoCommandPromt
 
                     //InputReceivedTimeOut.CancelAfter(TimeSpan.FromSeconds(5));
 
-                    if (!SendNextLine()) break;
+                    if (!SendNextLine())
+                    {
+                        if (this.PlayAction == null) break;
+
+                        var extraGCode = this.PlayAction(null, DeviceGcodePlayStates.End);
+                        this.priorityCommands.AddRange(extraGCode);
+                        if (!SendNextLine()) break;
+
+                    }
+
                     if (!OkInputReceived.WaitOne(TimeSpan.FromSeconds(this.DeviceTimoutSeconds)))
                     {
                         this.OnTimoutOccurred("Device not responding");
@@ -193,58 +210,63 @@ namespace ArduinoCommandPromt
         public int CurentCodePossitionIndex { get; private set; }
 
 
-        private bool SendNextLine()
+        private string GetNextGcodeline()
         {
-
-            CurentCodePossitionIndex = CurentCodePossitionIndex + 1;
             string command = "";
-            var foundToSendCommand = false;
-            while (this.GCode.Count() > CurentCodePossitionIndex)
+
+            while(true)
             {
-                //this.ListBoxCode.SelectedIndex = CurentCodePossitionIndex;
-                // command = this.ListBoxCode.SelectedItem.ToString().Trim();
-                command = (GCode[CurentCodePossitionIndex]).Trim();
-                if (this.PlayAction != null)
+                if (this.priorityCommands.Count > 0)
                 {
-                    var extraGCode = this.PlayAction(command, DateTime.Now - startTime);
-                    if (extraGCode != null && extraGCode.Length > 0)
-                    {
-                        startTime = DateTime.Now;
-                        GCode.RemoveAt(CurentCodePossitionIndex);
-                        GCode.InsertRange(CurentCodePossitionIndex, extraGCode);
-                        command = (GCode[CurentCodePossitionIndex]).Trim();
-                    }
+                    command = this.priorityCommands[0].Trim();
+                    this.priorityCommands.RemoveAt(0);
                 }
+                else
+                {
+                    CurentCodePossitionIndex = CurentCodePossitionIndex + 1;
+                    if (this.GCode.Count() <= CurentCodePossitionIndex) break;
 
+                    command = (GCode[CurentCodePossitionIndex]).Trim();
+                    if (this.PlayAction != null)
+                    {
+                        var extraGCode = this.PlayAction(command, DeviceGcodePlayStates.Middle);
+                        if (extraGCode != null && extraGCode.Length > 0)
+                        {
+                            this.priorityCommands.AddRange(extraGCode);
+                            continue;
+                        }
+                    }
 
-
+                }
                 if (command.IsNullOrEmpty() || command.Substring(0, 1) == "#" || command.Substring(0, 1) == ";")
                 {
-                    CurentCodePossitionIndex++;
                     continue;
                 }
-
-                command = command + " \n";
-
-
-
-
-
-
-
-                this.SerialSend(command, true);
-                foundToSendCommand = true;
                 break;
             }
+            return command+"\n";
 
-            var rez = foundToSendCommand && Playing;
-            Playing = rez;
-            return rez;
+
+        }
+
+        private bool SendNextLine()
+        {
+            string command = GetNextGcodeline();
+
+            if (command.Trim().IsNullOrEmpty())
+            {
+                Playing = false;
+                return false;
+            }
+            this.SerialSend(command, true);
+            return true;
         }
 
         private Object SerialSendLockObject = new Object();
-        internal bool SerialSend(string command, bool waitToSend = false)
+        private bool SerialSend(string command, bool waitToSend = false)
         {
+            if (Serial == null || !Serial.IsOpen) throw new Exception("Port is Closed");
+
             lock (SerialSendLockObject)
             {
                 var timespan = TimeSpan.FromSeconds(0);
@@ -258,12 +280,27 @@ namespace ArduinoCommandPromt
                     return false;
                 }
 
-                if (Serial == null || !Serial.IsOpen) throw new Exception("Port is Closed");
+
                 OkInputReceived.Reset();
                 this.Serial.Write(command);
                 this.OnMessageSend(command);
                 return true;
             }
+        }
+
+        public void Send(string command, bool waitToSend = false)
+        {
+            if (this.Playing)
+            {
+                this.priorityCommands.Add(command);
+
+            }
+            else
+            {
+                SerialSend(command, waitToSend);
+            }
+
+
         }
 
 
@@ -273,6 +310,7 @@ namespace ArduinoCommandPromt
         readonly StringBuilder SerialPortData = new StringBuilder();
 
         object SerialPort_DataReceivedLockObject = new object();
+        private List<String> priorityCommands=new List<string>();
         void SerialPort_DataReceived(object sender, ControllerEvent<string> e)
         {
             lock (SerialPort_DataReceivedLockObject)
@@ -313,6 +351,7 @@ namespace ArduinoCommandPromt
 
         internal void Stop()
         {
+
             Playing = false;
             //InputReceivedTimeOut.Cancel();
 
@@ -336,5 +375,15 @@ namespace ArduinoCommandPromt
         //{
         //    throw new NotImplementedException();
         //}
+
+        public bool IsConnected
+        {
+            get
+            {
+                if(this.Serial==null)return false;
+                return this.Serial.IsOpen;
+
+            }
+        }
     }
 }

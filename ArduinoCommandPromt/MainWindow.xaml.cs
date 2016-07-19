@@ -56,7 +56,7 @@ namespace ArduinoCommandPromt
                     _device.MessageSend += Arduino_MessageSend;
                     _device.TimoutOccurred += Arduino_TimoutReceived;
                     _device.ErrorOccurred += _Arduino_ErrorOccurred;
-                    _device.Serial = new DeviceSerialPortVirtual("port-1", 0);
+                    //_device.Serial = new DeviceSerialPortVirtual("port-1", 0);
 
 
                 }
@@ -108,7 +108,7 @@ namespace ArduinoCommandPromt
         private bool OpenFile(string fileName)
         {
             if (!File.Exists(fileName)) return false;
-
+            this.Title=fileName;
             GCodeFilePath = fileName;
             ListBoxCode.Items.Clear();
             ListBoxCode.Load(GCodeFilePath);
@@ -131,7 +131,7 @@ namespace ArduinoCommandPromt
         {
             try
             {
-                this.Device.SerialSend(TextBoxCommand.Text + "\n");
+                this.Device.Send(TextBoxCommand.Text + "\n");
             }
             catch (Exception ex)
             {
@@ -145,6 +145,7 @@ namespace ArduinoCommandPromt
             try
             {
                 Device.Serial = new DeviceSerialPort(PortsComboBox.SelectedValue.ToString(), BaundrateComboBox.SelectedValue.ToString().Parse<int>());
+                //Device.Serial.Open();
                 //Device.SerialConnect(PortsComboBox.SelectedValue.ToString(), BaundrateComboBox.SelectedValue.ToString().Parse<int>());
                 this.ButtonConnect.Content = "Disconnect";
             }
@@ -166,7 +167,7 @@ namespace ArduinoCommandPromt
             Logging.Log.Info(messageFormated);
             try
             {
-                this.Dispatcher.Invoke((Action)(() => ConsoleList.Add(messageFormated)));
+             //   this.Dispatcher.Invoke((Action)(() => ConsoleList.Add(messageFormated)));
                // Logging.Log.Info(messageFormated);
             }
             catch (Exception)
@@ -258,8 +259,8 @@ namespace ArduinoCommandPromt
             //async
             //Action zz = ( () => {  this.Arduino.PlayFile(GCodeFilePath); });
 
-            //try
-            //{
+            try
+            {
                 if (DeviceThread != null && DeviceThread.IsAlive) throw new Exception("Thread not stopped!");
                 DeviceThread = new Thread(() =>
                     {
@@ -268,36 +269,30 @@ namespace ArduinoCommandPromt
                     })
             ;
                 DeviceThread.Start();
-            //}
-            //catch (Exception ex)
-            //{
-            //    MessageBox.Show(ex.Message, "Error");
-            //}
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Error");
+            }
         }
 
 
-        private  string[] refresh(string command, TimeSpan timeSpan)
+        private  string[] refresh(string command,DeviceGcodePlayStates playState)
         {
-
-
-            if (timeSpan.TotalSeconds < 20) return null;
-
-            var filename = "Sequence.g";
-            if (!File.Exists(filename))
+            string[] GCode=new string[]{};
+            if (playState == DeviceGcodePlayStates.Middle)
             {
-                //string[] tmp = {String.Empty};
-                return null;
-            };
-            var GCode = File.ReadAllLines(filename);
-
-            for(int i=0;i<GCode.Count();i++)
-            {
-                if (GCode[i].Contains("{NextPoint}"))
-                {
-                    GCode[i] = command;
-                }
+                if (RenewColor(command, out GCode)) return GCode;
+                if (SetTools(command, out GCode)) return GCode;
             }
-
+            if (playState == DeviceGcodePlayStates.Start)
+            {
+                StartSequence(command, out GCode); return GCode;
+            }
+            if (playState == DeviceGcodePlayStates.End)
+            {
+                EndSequence(command, out GCode);  return GCode;
+            }
 
             return GCode;
 
@@ -307,9 +302,78 @@ namespace ArduinoCommandPromt
 
 
 
+        private bool SetTools(string command , out string[] gCode)
+        {
+            gCode = null;
+            command = command.Trim();
+            if (command.IsNullOrEmpty()) return false;
+            if (command[0]!='Z') return false;
 
 
+            var wordEnd = command.IndexOf(@" ");
+            if (wordEnd < 0) wordEnd = command.Length-1;
+            var Zvalue=command.Substring(1, wordEnd).TryParse<double>(0);
 
+            var filename = "SequenceOff.g";
+            if (Zvalue < 1)
+            {
+                filename = "SequenceOn.g";
+            }
+
+            if (!File.Exists(filename))
+            {
+                throw new Exception("File " + filename+ " not found");
+            }
+            ;
+            GetSequence(command, ref gCode, filename);
+            return true;
+        }
+
+
+        private bool EndSequence(string command, out string[] gCode)
+        {
+            gCode = null;
+            var filename = "SequenceEnd.g";
+            GetSequence(command, ref gCode, filename);
+            return true;
+        }
+
+        private bool StartSequence(string command, out string[] gCode)
+        {
+            gCode = null;
+            var filename = "SequenceStart.g";
+            GetSequence(command, ref gCode, filename);
+            return true;
+        }
+
+        private void GetSequence(string command, ref string[] gCode, string filename)
+        {
+            if (!File.Exists(filename))
+            {
+                throw new Exception("File " + filename + " not found");
+            }
+            var gText = File.ReadAllText(filename);
+            gText = gText.Replace(@"{NextPoint}", command);
+            gText = gText.Replace(@"{ARef}", ((int) this.ARefvalue).ToString());
+            gCode = gText.Split(new string[] { Environment.NewLine }, StringSplitOptions.None);
+        }
+
+        private DateTime? _renewColorStartTime = null;
+        private bool RenewColor(string command,   out string[] gCode)
+        {
+            if (this._renewColorStartTime == null) _renewColorStartTime = DateTime.UtcNow;
+            TimeSpan timeSpan = DateTime.UtcNow - (DateTime)_renewColorStartTime;
+
+            gCode = null;
+            if (timeSpan.TotalSeconds < 20) return false;
+            if (!command.Contains("X")) return false;
+            _renewColorStartTime = DateTime.UtcNow;
+            var filename = "SequenceRefresh.g";
+
+            ;
+            GetSequence(command, ref gCode, filename);
+            return true;
+        }
 
 
         private void ExecuteStopSequence()
@@ -327,7 +391,7 @@ namespace ArduinoCommandPromt
 
             //if (DeviceThread != null && DeviceThread.IsAlive)
             //{
-                 this.Device.Stop();
+                this.Device.Stop();
             //    return;
             //}
 
@@ -368,7 +432,7 @@ namespace ArduinoCommandPromt
             var command = this.ListBoxCode.SelectedItem.ToString();
             try
             {
-                this.Device.SerialSend(command + "\n");
+                this.Device.Send(command + "\n");
             }
             catch (Exception ex)
             {
@@ -376,26 +440,100 @@ namespace ArduinoCommandPromt
             }
         }
 
-        private void ZSliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if(this.Device==null) return;
-            if (this.Device.Serial == null) return;
-            if (!this.Device.Serial.IsOpen) return;
-            //if (this.DeviceThread != null && this.DeviceThread.IsAlive) return;
-            this.Device.SerialSend("M1 A" + ((int)Math.Floor(e.NewValue)) +"\n",true);
-        }
 
-        private void ZTextBoxKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
-        {
 
-            if (e.Key == Key.Enter)
+        void SendCommand(string command)
+        {
+            if (this.Device == null) return;
+            if (!this.Device.IsConnected) return;
+
+            try
             {
-                if (this.Device == null) return;
-                if (this.Device.Serial == null) return;
-                if (!this.Device.Serial.IsOpen) return;
-                //if (this.DeviceThread != null && this.DeviceThread.IsAlive) return;
-                this.Device.SerialSend("M1 A" + ((int)Math.Floor(ZTextBox.Text.TryParse<double>(0) )) + "\n", true);
+
+                this.Device.Send(command + "\n",true);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Error");
             }
         }
+
+        private void ARefTextBoxKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+
+                SendCommand("M1 A" + ((int) Math.Floor(ARefTextBox.Text.Replace('.',',').TryParse<double>(0))) );
+            }
+        }
+        private void ARef_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            SendCommand("M1 A" + ((int)Math.Floor(ARef.Value)));
+        }
+
+
+        private void BRefTextBoxKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                SendCommand("M1 B" + ((int)Math.Floor(BRefTextBox.Text.Replace('.', ',').TryParse<double>(0))));
+            }
+        }
+
+        private void CRefTextBoxKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                SendCommand("M1 C" + ((int)Math.Floor(CRefTextBox.Text.Replace('.', ',').TryParse<double>(0))));
+            }
+        }
+
+        private void DRefTextBoxKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                SendCommand("M1 D" + ((int)Math.Floor(DRefTextBox.Text.Replace('.', ',').TryParse<double>(0))));
+            }
+        }
+
+        private void ERefTextBoxKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                SendCommand("M1 E" + ((int)Math.Floor(ERefTextBox.Text.Replace('.', ',').TryParse<double>(0))));
+            }
+        }
+
+        private void FRefTextBoxKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                SendCommand("M1 F" + ((int)Math.Floor(FRefTextBox.Text.Replace('.', ',').TryParse<double>(0))));
+            }
+        }
+
+        private void FRef_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            SendCommand("M1 F" + ((int)Math.Floor(FRef.Value)));
+        }
+
+
+        private void ARefTextBox_OnTextChanged(object sender, TextChangedEventArgs e)
+        {
+            this.ARefvalue = getDouble(((TextBox) sender).Text);
+        }
+
+        public double ARefvalue { get; set; }
+
+
+
+
+        private double getDouble(string stringDouble)
+        {
+            return stringDouble.Replace('.', ',').Parse<double>();
+        }
+
+
+
     }
 }
