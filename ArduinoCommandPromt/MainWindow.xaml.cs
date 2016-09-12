@@ -26,7 +26,18 @@ namespace ArduinoCommandPromt
     public partial class MainWindow : Window
     {
 
-        public CNCSimulator Simulator { get; set; }
+        private CNCSimulator _simulartor ;
+
+        public CNCSimulator Simulator
+        {
+            get
+            {
+                if (_simulartor == null) _simulartor = new CNCSimulator();
+                return _simulartor;
+
+            }
+
+        }
 
 
 
@@ -51,13 +62,14 @@ namespace ArduinoCommandPromt
                     {
                         _device.DeviceTimoutSeconds = timoutSeconds.Parse<int>();
                     }
+                  // _device.Serial = new DeviceSerialPortVirtual("port-1", 0);
+                   //_device.Serial.Open();
+
                     _device.MessageReceived += Arduino_MessageReceived;
                     _device.JobFinished += Arduino_JobFinished;
                     _device.MessageSend += Arduino_MessageSend;
                     _device.TimoutOccurred += Arduino_TimoutReceived;
                     _device.ErrorOccurred += _Arduino_ErrorOccurred;
-                    //_device.Serial = new DeviceSerialPortVirtual("port-1", 0);
-
 
                 }
                 return _device;
@@ -68,7 +80,9 @@ namespace ArduinoCommandPromt
 
         public string DeviceStopSequenceFileGCodeFilePath { get; set; }
         private Thread DeviceThread { get; set; }
-        private string GCodeFilePath{get; set; }
+        private string GCodeFilePath { get; set; }
+
+        public string TimeRefMap { get; set; }
 
         //public StringBuilderWrapper ConsoleContent { get; private set; }
         //public Queue<string> ConsoleList { get; private set; }
@@ -86,11 +100,9 @@ namespace ArduinoCommandPromt
         }
 
 
-
-
-
         public MainWindow()
         {
+            TimeRefMap = "20";
             //            ConsoleContent = new StringBuilderWrapper();
             InitializeComponent();
             this.DataContext = this;
@@ -102,13 +114,13 @@ namespace ArduinoCommandPromt
 
             var fileName = (string)Settings.Default["LastDialogOpenLocation"];
             OpenFile(fileName);
-            Simulator = new CNCSimulator();
+
         }
 
         private bool OpenFile(string fileName)
         {
             if (!File.Exists(fileName)) return false;
-            this.Title=fileName;
+            this.Title = fileName;
             GCodeFilePath = fileName;
             ListBoxCode.Items.Clear();
             ListBoxCode.Load(GCodeFilePath);
@@ -129,15 +141,7 @@ namespace ArduinoCommandPromt
 
         private void ButtonSend_OnClick(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                this.Device.Send(TextBoxCommand.Text + "\n");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Error");
-            }
-
+            SendCommand(TextBoxCommand.Text + "\n");
         }
 
         private void ButtonConnect_OnClick(object sender, RoutedEventArgs e)
@@ -167,8 +171,8 @@ namespace ArduinoCommandPromt
             Logging.Log.Info(messageFormated);
             try
             {
-             //   this.Dispatcher.Invoke((Action)(() => ConsoleList.Add(messageFormated)));
-               // Logging.Log.Info(messageFormated);
+                //   this.Dispatcher.Invoke((Action)(() => ConsoleList.Add(messageFormated)));
+                // Logging.Log.Info(messageFormated);
             }
             catch (Exception)
             {
@@ -256,8 +260,6 @@ namespace ArduinoCommandPromt
 
         private void ButtonPlay_OnClick(object sender, RoutedEventArgs e)
         {
-            //async
-            //Action zz = ( () => {  this.Arduino.PlayFile(GCodeFilePath); });
 
             try
             {
@@ -277,9 +279,9 @@ namespace ArduinoCommandPromt
         }
 
 
-        private  string[] refresh(string command,DeviceGcodePlayStates playState)
+        private string[] refresh(string command, DeviceGcodePlayStates playState)
         {
-            string[] GCode=new string[]{};
+            string[] GCode = new string[] { };
             if (playState == DeviceGcodePlayStates.Middle)
             {
                 if (RenewColor(command, out GCode)) return GCode;
@@ -291,7 +293,7 @@ namespace ArduinoCommandPromt
             }
             if (playState == DeviceGcodePlayStates.End)
             {
-                EndSequence(command, out GCode);  return GCode;
+                EndSequence(command, out GCode); return GCode;
             }
 
             return GCode;
@@ -302,17 +304,17 @@ namespace ArduinoCommandPromt
 
 
 
-        private bool SetTools(string command , out string[] gCode)
+        private bool SetTools(string command, out string[] gCode)
         {
             gCode = null;
             command = command.Trim();
             if (command.IsNullOrEmpty()) return false;
-            if (command[0]!='Z') return false;
+            if (command[0] != 'Z') return false;
 
 
             var wordEnd = command.IndexOf(@" ");
-            if (wordEnd < 0) wordEnd = command.Length-1;
-            var Zvalue=command.Substring(1, wordEnd).TryParse<double>(0);
+            if (wordEnd < 0) wordEnd = command.Length - 1;
+            var Zvalue = command.Substring(1, wordEnd).TryParse<double>(0);
 
             var filename = "SequenceOff.g";
             if (Zvalue < 1)
@@ -322,7 +324,7 @@ namespace ArduinoCommandPromt
 
             if (!File.Exists(filename))
             {
-                throw new Exception("File " + filename+ " not found");
+                throw new Exception("File " + filename + " not found");
             }
             ;
             GetSequence(command, ref gCode, filename);
@@ -346,6 +348,8 @@ namespace ArduinoCommandPromt
             return true;
         }
 
+
+
         private void GetSequence(string command, ref string[] gCode, string filename)
         {
             if (!File.Exists(filename))
@@ -354,19 +358,24 @@ namespace ArduinoCommandPromt
             }
             var gText = File.ReadAllText(filename);
             gText = gText.Replace(@"{NextPoint}", command);
-            gText = gText.Replace(@"{ARef}", ((int) this.ARefvalue).ToString());
+            gText = gText.Replace(@"{ARef}", ((int)this.ARefvalue).ToString());
             gCode = gText.Split(new string[] { Environment.NewLine }, StringSplitOptions.None);
         }
 
         private DateTime? _renewColorStartTime = null;
-        private bool RenewColor(string command,   out string[] gCode)
+        private bool RenewColor(string command, out string[] gCode)
         {
             if (this._renewColorStartTime == null) _renewColorStartTime = DateTime.UtcNow;
             TimeSpan timeSpan = DateTime.UtcNow - (DateTime)_renewColorStartTime;
 
             gCode = null;
-            if (timeSpan.TotalSeconds < 20) return false;
-            if (!command.Contains("X")) return false;
+            if (timeSpan.TotalSeconds < TimeRefMap.Replace('.', ',').Parse<double>()) return false;
+            //var zzz = TimeRefMap;
+
+            //if (timeSpan.TotalSeconds < 20 ) return false;
+
+
+            if (!(command.Contains("X") || command.Contains("G1"))) return false;
             _renewColorStartTime = DateTime.UtcNow;
             var filename = "SequenceRefresh.g";
 
@@ -382,7 +391,7 @@ namespace ArduinoCommandPromt
             var DeviceStopSequenceFile = (string)Settings.Default["DeviceStopSequenceFile"];
 
 
-          //  ArduinoCommandPromt.Properties.Settings
+            //  ArduinoCommandPromt.Properties.Settings
 
             if (this.Device == null) return;
             if (this.Device.Serial == null) return;
@@ -391,7 +400,7 @@ namespace ArduinoCommandPromt
 
             //if (DeviceThread != null && DeviceThread.IsAlive)
             //{
-                this.Device.Stop();
+            this.Device.Stop();
             //    return;
             //}
 
@@ -450,7 +459,7 @@ namespace ArduinoCommandPromt
             try
             {
 
-                this.Device.Send(command + "\n",true);
+                this.Device.Send(command + "\n", true);
             }
             catch (Exception ex)
             {
@@ -463,7 +472,7 @@ namespace ArduinoCommandPromt
             if (e.Key == Key.Enter)
             {
 
-                SendCommand("M1 A" + ((int) Math.Floor(ARefTextBox.Text.Replace('.',',').TryParse<double>(0))) );
+                SendCommand("M1 A" + ((int)Math.Floor(ARefTextBox.Text.Replace('.', ',').TryParse<double>(0))));
             }
         }
         private void ARef_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -520,7 +529,7 @@ namespace ArduinoCommandPromt
 
         private void ARefTextBox_OnTextChanged(object sender, TextChangedEventArgs e)
         {
-            this.ARefvalue = getDouble(((TextBox) sender).Text);
+            this.ARefvalue = getDouble(((TextBox)sender).Text);
         }
 
         public double ARefvalue { get; set; }
@@ -533,6 +542,40 @@ namespace ArduinoCommandPromt
             return stringDouble.Replace('.', ',').Parse<double>();
         }
 
+
+        private void TextBoxCommand_OnKeyDown(object sender, KeyEventArgs e)
+        {
+
+            if (e.Key == Key.Enter)
+            {
+                SendCommand(TextBoxCommand.Text + "\n");
+            }
+
+        }
+
+        private void ExecuteCustomSequenceButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            string[] GCode;
+            RenewColor("G1", out GCode);
+            if (GCode == null) return;
+
+            foreach (var Gline in GCode)
+            {
+                this.SendCommand(Gline+"\n");
+            }
+
+
+        }
+
+        private void TimeRefTextBoxKeyDown(object sender, KeyEventArgs e)
+        {
+            TimeRefMap = this.TimeRefTextBox.Text;
+        }
+
+        private void TimeRef_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            TimeRefMap = this.TimeRefTextBox.Text;
+        }
 
 
     }

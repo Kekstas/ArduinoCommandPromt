@@ -150,7 +150,7 @@
 
 
                         <StackPanel   Grid.Column="2">
-                            <GroupBox Header="A tool reference" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                            <GroupBox Header="A tool oweride" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
                                 <Grid   >
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
@@ -160,7 +160,7 @@
                                     <TextBox Text="{Binding ElementName=ARef,Path=Value }" KeyDown="ARefTextBoxKeyDown" Name="ARefTextBox"  Grid.Column="1"   TextChanged="ARefTextBox_OnTextChanged"  />
                                 </Grid>
                             </GroupBox>
-                            <GroupBox Header="B tool reference" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                            <GroupBox Header="B tool oweride" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
                                 <Grid   >
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
@@ -170,7 +170,7 @@
                                     <TextBox Text="{Binding ElementName=BRef,Path=Value }" KeyDown="BRefTextBoxKeyDown" Name="BRefTextBox"  Grid.Column="1"  />
                                 </Grid>
                             </GroupBox>
-                            <GroupBox Header="C tool reference" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                            <GroupBox Header="C tool oweride" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
                                 <Grid   >
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
@@ -180,7 +180,7 @@
                                     <TextBox Text="{Binding ElementName=CRef,Path=Value }" KeyDown="CRefTextBoxKeyDown" Name="CRefTextBox"  Grid.Column="1"  />
                                 </Grid>
                             </GroupBox>
-                            <GroupBox Header="D tool reference" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                            <GroupBox Header="D tool oweride" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
                                 <Grid   >
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
@@ -190,7 +190,7 @@
                                     <TextBox Text="{Binding ElementName=DRef,Path=Value }" KeyDown="DRefTextBoxKeyDown" Name="DRefTextBox"  Grid.Column="1"  />
                                 </Grid>
                             </GroupBox>
-                            <GroupBox Header="E tool reference" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                            <GroupBox Header="E tool oweride" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
                                 <Grid   >
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
@@ -200,16 +200,41 @@
                                     <TextBox Text="{Binding ElementName=ERef,Path=Value }" KeyDown="ERefTextBoxKeyDown" Name="ERefTextBox"  Grid.Column="1"  />
                                 </Grid>
                             </GroupBox>
-                            <GroupBox Header="F tool reference" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                            <GroupBox Header="F tool override" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
                                 <Grid   >
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="100" />
                                     </Grid.ColumnDefinitions>
-                                    <Slider Minimum="4000" Maximum="7000"   SmallChange="1"    Name="FRef"  ValueChanged="FRef_OnValueChanged" />
+                                    <Slider Minimum="4000" Maximum="7000"   SmallChange="1"    Name="FRef"  ValueChanged="FRef_OnValueChanged"  />
                                     <TextBox Text="{Binding ElementName=FRef,Path=Value }" KeyDown="FRefTextBoxKeyDown" Name="FRefTextBox"  Grid.Column="1"  />
                                 </Grid>
                             </GroupBox>
+
+
+                            <GroupBox Header="Time Reference override" HorizontalAlignment="Stretch"   VerticalAlignment="Top"    >
+                                <Grid   >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="100" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="-1" Maximum="200"   SmallChange="1"    Name="TimeRef"  ValueChanged="TimeRef_OnValueChanged" />
+                                    <TextBox Text="{Binding ElementName=TimeRef,Path=Value }" KeyDown="TimeRefTextBoxKeyDown" Name="TimeRefTextBox"  Grid.Column="1" 
+                                                                                           />
+                                </Grid>
+                            </GroupBox>
+                            <GroupBox Header="Execute Custom Sequence " HorizontalAlignment="Stretch"   VerticalAlignment="Top"  >  
+                                <Grid   >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="80" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Click="ExecuteCustomSequenceButton_OnClick"  Name="ExecuteCustomSequenceButton">Execute</Button>
+                                    <Button Grid.Column="1" Margin="10,0,0,0"  >Browse</Button>
+                                </Grid>
+                            </GroupBox>
+
+
                         </StackPanel>
                     </Grid>
                 </TabItem>
@@ -236,7 +261,7 @@
 
 
                 <StackPanel   Margin="0,10,0,0" VerticalAlignment="Bottom">
-                    <TextBox  Name="TextBoxCommand"/>
+                    <TextBox  Name="TextBoxCommand" KeyDown="TextBoxCommand_OnKeyDown" />
                     <Button  Content="Send" HorizontalAlignment="Center" VerticalAlignment="Top" Width="75" Click="ButtonSend_OnClick" />
                 </StackPanel>
 
