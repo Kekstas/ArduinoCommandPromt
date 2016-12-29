@@ -17,6 +17,7 @@ using System.IO;
 using ArduinoCommandPromt.Properties;
 using System.Threading.Tasks;
 using ArduinoCommandPromt.Models;
+using log4net.Config;
 
 namespace ArduinoCommandPromt
 {
@@ -101,7 +102,7 @@ namespace ArduinoCommandPromt
 
 
         public MainWindow()
-        {
+        { 
             TimeRefMap = "20";
             //            ConsoleContent = new StringBuilderWrapper();
             InitializeComponent();
@@ -163,21 +164,17 @@ namespace ArduinoCommandPromt
 
 
         private void Log(string message)
-        {
+        { 
+            Logging.Log.Info(message.Trim());
+            //try
+            //{
+            //    //   this.Dispatcher.Invoke((Action)(() => ConsoleList.Add(messageFormated)));
+            //    // Logging.Log.Info(messageFormated);
+            //}
+            //catch (Exception)
+            //{
 
-            var time = DateTime.Now.ToString();
-            //this.Dispatcher.Invoke((Action)(() => TextBlockConsole.AppendText()));
-            var messageFormated = string.Format("{0} {1}", time, message.Trim());
-            Logging.Log.Info(messageFormated);
-            try
-            {
-                //   this.Dispatcher.Invoke((Action)(() => ConsoleList.Add(messageFormated)));
-                // Logging.Log.Info(messageFormated);
-            }
-            catch (Exception)
-            {
-
-            }
+            //}
 
             //if (ConsoleList.Count > 50) ConsoleList.RemoveAt(ConsoleList.Count);
 
@@ -282,10 +279,13 @@ namespace ArduinoCommandPromt
         private string[] refresh(string command, DeviceGcodePlayStates playState)
         {
             string[] GCode = new string[] { };
+            if(command!=null && command.Trim().Length>0) Simulator.Send(command);
+
             if (playState == DeviceGcodePlayStates.Middle)
             {
                 if (RenewColor(command, out GCode)) return GCode;
-                if (SetTools(command, out GCode)) return GCode;
+                if (OnBrush(command, out GCode)) return GCode;
+                if (OfBrush(command, out GCode)) return GCode;
             }
             if (playState == DeviceGcodePlayStates.Start)
             {
@@ -304,23 +304,15 @@ namespace ArduinoCommandPromt
 
 
 
-        private bool SetTools(string command, out string[] gCode)
+        private bool OnBrush(string command, out string[] gCode, bool forceCheck = false)
         {
             gCode = null;
             command = command.Trim();
             if (command.IsNullOrEmpty()) return false;
-            if (command[0] != 'Z') return false;
-
-
-            var wordEnd = command.IndexOf(@" ");
-            if (wordEnd < 0) wordEnd = command.Length - 1;
-            var Zvalue = command.Substring(1, wordEnd).TryParse<double>(0);
-
-            var filename = "SequenceOff.g";
-            if (Zvalue < 1)
-            {
-                filename = "SequenceOn.g";
-            }
+           // if (command[0] != 'Z') return false;
+            if (!forceCheck && !Simulator.ZposChange ) return false;
+            if (Simulator.Zpos >= 1) return false;
+            var filename = "SequenceOn.g"; 
 
             if (!File.Exists(filename))
             {
@@ -330,6 +322,27 @@ namespace ArduinoCommandPromt
             GetSequence(command, ref gCode, filename);
             return true;
         }
+       
+
+        private bool OfBrush(string command, out string[] gCode, bool forceCheck = false)
+        {
+            gCode = null;
+            command = command.Trim();
+            if (command.IsNullOrEmpty()) return false;
+            //if (command[0] != 'Z') return false;
+            if (!forceCheck && !Simulator.ZposChange) return false;
+            if (Simulator.Zpos < 1) return false;
+            var filename = "SequenceOff.g";
+
+            if (!File.Exists(filename))
+            {
+                throw new Exception("File " + filename + " not found");
+            }
+    ;
+            GetSequence(command, ref gCode, filename);
+            return true;
+        }
+
 
 
         private bool EndSequence(string command, out string[] gCode)
@@ -347,9 +360,7 @@ namespace ArduinoCommandPromt
             GetSequence(command, ref gCode, filename);
             return true;
         }
-
-
-
+ 
         private void GetSequence(string command, ref string[] gCode, string filename)
         {
             if (!File.Exists(filename))
@@ -357,6 +368,23 @@ namespace ArduinoCommandPromt
                 throw new Exception("File " + filename + " not found");
             }
             var gText = File.ReadAllText(filename);
+
+            if (gText.IndexOf(@"{CurentPoint}") >= 0)
+            {
+                string[] gCodeOn = null;
+
+                string curentPoint=$"X{Simulator.XposPrevious} Y{Simulator.YposPrevious}";
+
+                if (OnBrush($"Z{Simulator.Zpos}", out gCodeOn, true))
+                {
+                    curentPoint = curentPoint+"\n" + string.Join("\n", gCodeOn);
+                }
+
+                gText = gText.Replace(@"{CurentPoint}", curentPoint);
+               
+            }  
+
+
             gText = gText.Replace(@"{NextPoint}", command);
             gText = gText.Replace(@"{ARef}", ((int)this.ARefvalue).ToString());
             gCode = gText.Split(new string[] { Environment.NewLine }, StringSplitOptions.None);
@@ -376,6 +404,8 @@ namespace ArduinoCommandPromt
 
 
             if (!(command.Contains("X") || command.Contains("G1"))) return false;
+  
+
             _renewColorStartTime = DateTime.UtcNow;
             var filename = "SequenceRefresh.g";
 

@@ -156,7 +156,7 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="100" />
                                     </Grid.ColumnDefinitions>
-                                    <Slider Minimum="4500" Maximum="6000"   SmallChange="1"    Name="ARef"  ValueChanged="ARef_OnValueChanged" />
+                                    <Slider Minimum="4500" Maximum="7000"   SmallChange="1"    Name="ARef"  ValueChanged="ARef_OnValueChanged" />
                                     <TextBox Text="{Binding ElementName=ARef,Path=Value }" KeyDown="ARefTextBoxKeyDown" Name="ARefTextBox"  Grid.Column="1"   TextChanged="ARefTextBox_OnTextChanged"  />
                                 </Grid>
                             </GroupBox>

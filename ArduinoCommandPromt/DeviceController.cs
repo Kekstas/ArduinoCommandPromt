@@ -79,7 +79,7 @@ namespace ArduinoCommandPromt
         public event EventHandler<ControllerEvent<string>> MessageSend;
         private void OnMessageSend(string message)
         {
-            if (MessageSend != null) MessageSend(this, new ControllerEvent<string>(message));
+            if (MessageSend != null) MessageSend(this, new ControllerEvent<string>("N"+CurentCodePossitionIndex+" "+message));
         }
 
         public event EventHandler<ControllerEvent<string>> TimoutOccurred;
@@ -130,7 +130,7 @@ namespace ArduinoCommandPromt
 
         public DeviceController()
         {
-            DeviceTimoutSeconds = 5;
+            DeviceTimoutSeconds = 60;
         }
 
 

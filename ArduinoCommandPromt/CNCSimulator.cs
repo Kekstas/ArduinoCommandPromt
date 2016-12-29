@@ -10,6 +10,15 @@ namespace ArduinoCommandPromt
 {
     public class CNCSimulator : INotifyPropertyChanged
     {
+        public CNCSimulator()
+        {
+            XposPrevious = 0;
+            YposPrevious = 0;
+            ZposPrevious = 0;
+        }
+ 
+
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         private double _Xpos;
@@ -21,8 +30,7 @@ namespace ArduinoCommandPromt
         private int _DtoolPos;
         private int _EtoolPos;
         private int _FtoolPos;
-
-
+        private readonly double TOLERANCE=0.001;
 
         public double Xpos
         {
@@ -106,9 +114,14 @@ namespace ArduinoCommandPromt
             }
         }
 
+        public bool ZposChange { get; internal set; }
+        public double XposPrevious { get; private set; }
+        public double YposPrevious { get; private set; }
+        public double ZposPrevious { get; private set; }
 
         internal void Send(string p)
         {
+            ZposChange = false;
             ParseCommand(p.Replace('.', ','));
         }
 
@@ -148,8 +161,8 @@ namespace ArduinoCommandPromt
             var gCommand = command.Substring(0, wordEnd);
             switch (gCommand)
             {
+                case "G0":
                 case "G1":
-                case "G2":
                     parseCoordinates(command.Substring(wordEnd).Trim());
                     break;
                 case "G28":
@@ -217,13 +230,18 @@ namespace ArduinoCommandPromt
                 switch (gCommand[0])
                 {
                     case 'X':
+                        XposPrevious = Xpos;
                         Xpos = coordinate;
                         break;
                     case 'Y':
+                        YposPrevious = Ypos;
                         Ypos = coordinate;
                         break;
                     case 'Z':
+                        if (Math.Abs(Zpos - coordinate) < TOLERANCE) break;
+                        ZposPrevious = Zpos;
                         Zpos = coordinate;
+                        ZposChange = true;
                         break;
                 }
 
