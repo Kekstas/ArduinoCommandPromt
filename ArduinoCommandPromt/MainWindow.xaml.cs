@@ -398,13 +398,7 @@ namespace ArduinoCommandPromt
 
             gCode = null;
             if (timeSpan.TotalSeconds < TimeRefMap.Replace('.', ',').Parse<double>()) return false;
-            //var zzz = TimeRefMap;
-
-            //if (timeSpan.TotalSeconds < 20 ) return false;
-
-
-            if (!(command.Contains("X") || command.Contains("G1"))) return false;
-  
+ 
 
             _renewColorStartTime = DateTime.UtcNow;
             var filename = "SequenceRefresh.g";

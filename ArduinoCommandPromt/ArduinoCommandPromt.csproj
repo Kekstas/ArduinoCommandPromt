@@ -77,6 +77,7 @@
     </ApplicationDefinition>
     <Compile Include="AutoScrollBehavior.cs" />
     <Compile Include="CNCSimulator.cs" />
+    <Compile Include="DDeviceStatus.cs" />
     <Compile Include="Models\ControllerEvent.cs" />
     <Compile Include="Serial\IDeviceSerialPort.cs" />
     <Compile Include="Serial\DeviceSerialPort.cs" />
